@@ -1201,6 +1201,10 @@ def test_variance(unittest):
         )
         response_data = json.loads(response.data)
         del response_data["code"]
+        response_data["shapiroWilk"]["statistic"] = round(
+            response_data["shapiroWilk"]["statistic"],
+            4,
+        )
         unittest.assertEqual(response_data, expected["low_var"])
 
 
@@ -2525,7 +2529,9 @@ def test_save_column_filter(unittest, custom_data):
         unittest.assertEqual(
             json.loads(response.data)["currFilters"]["str_val"],
             {
-                "query": "`str_val` in ('a', 'b')",
+                "query": "`str_val` in ('a', 'b')"
+                if PY3
+                else "`str_val` in (u'a', u'b')",
                 "value": ["a", "b"],
                 "action": "equals",
                 "caseSensitive": False,

@@ -98,22 +98,17 @@ class StringFilter(MissingFilter):
             action=action,
             raw=raw,
         )
+        fmt_string = "{!r}" if self.classification == "S" else "{}"
         if action == "equals":
             if len(state) == 1:
-                val_str = ("'{}'" if self.classification == "S" else "{}").format(
-                    state[0]
-                )
+                val_str = fmt_string.format(state[0])
                 fltr["query"] = "{} {} {}".format(
                     build_col_key(self.column),
                     "==" if operand == "=" else "!=",
                     val_str,
                 )
             else:
-                val_str = (
-                    "'{}'".format("', '".join(state))
-                    if self.classification == "S"
-                    else ",".join(state)
-                )
+                val_str = ", ".join(map(fmt_string.format, state))
                 fltr["query"] = "{} {} ({})".format(
                     build_col_key(self.column),
                     "in" if operand == "=" else "not in",
@@ -121,18 +116,19 @@ class StringFilter(MissingFilter):
                 )
         elif action in ["startswith", "endswith"]:
             case_insensitive_conversion = "" if case_sensitive else ".str.lower()"
-            fltr["query"] = "{}{}.str.{}('{}', na=False)".format(
+            fltr["query"] = "{}{}.str.{}({!r}, na=False)".format(
                 build_col_key(self.column),
                 case_insensitive_conversion,
                 action,
                 raw if case_sensitive else raw.lower(),
             )
             fltr["query"] = handle_ne(fltr["query"], operand)
-        elif action == "contains":
-            fltr["query"] = "{}.str.contains('{}', na=False, case={})".format(
+        elif action in ["contains", "regex"]:
+            fltr["query"] = "{}.str.contains({!r}, na=False, case={}, regex={})".format(
                 build_col_key(self.column),
                 raw,
                 "True" if case_sensitive else "False",
+                "True" if action == "regex" else "False",
             )
             fltr["query"] = handle_ne(fltr["query"], operand)
         elif action == "length":
